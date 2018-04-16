@@ -68,5 +68,8 @@ train_config={
     'target_update_frequency': 1000,
     'policy_update_frequency': 2,
     'replay_buffer_capacity': 10000,
-    'num_steps_save_training_run': 5000
+    'num_steps_save_training_run': 5000,
+    'self_reflect_window': 5000,
+    'self_reflect_update_interval': 500,
+    'self_reflect_epsilon_value': .8
     }
