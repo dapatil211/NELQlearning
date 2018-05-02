@@ -15,8 +15,8 @@ class EpsilonPolicy(with_metaclass(abc.ABCMeta, object)):
 
 class LinearlyDecayingEpsilonPolicy(EpsilonPolicy):
     def __init__(
-            self, start_step, start_value, difference, trigger_difference=.0001,
-            trigger_epsilon=.8, lower_bound=0.0):
+            self, start_step, start_value, difference, trigger_difference=.001,
+            trigger_epsilon=.8, lower_bound=0.1):
         self.start_step = start_step
         self.start_value = start_value
         self.difference = difference
@@ -39,7 +39,7 @@ class LinearlyDecayingEpsilonPolicy(EpsilonPolicy):
 
 
 class ExponentiallyDecayingEpsilonPolicy(EpsilonPolicy):
-    def __init__(self, start_step, start_value, factor, lower_bound=0.0):
+    def __init__(self, start_step, start_value, factor, lower_bound=0.1):
         self.start_step = start_step
         self.start_value = start_value
         self.factor = factor
