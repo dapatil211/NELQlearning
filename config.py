@@ -53,7 +53,8 @@ config2 = nel.SimulatorConfig(
     intensity_fn=nel.IntensityFunction.CONSTANT,
     intensity_fn_args=intensity_fn_args,
     interaction_fn=nel.InteractionFunction.PIECEWISE_BOX,
-    interaction_fn_args=interaction_fn_args)
+    interaction_fn_args=interaction_fn_args,
+    seed=100)
 
 agent_config = {
     'history_len': 2,

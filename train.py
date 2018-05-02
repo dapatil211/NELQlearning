@@ -27,6 +27,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+seed = 100
+np.random.seed(100)
+torch.manual_seed(100)
+torch.cuda.manual_seed_all(100)
+
 
 class ReplayBuffer(object):
     def __init__(self, capacity):
@@ -266,7 +271,7 @@ def main():
     state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
     agent = RLAgent(env, state_size=state_size, use_gpu=use_gpu)
 
-    optimizer = yellowfin.YFOptimizer(agent.policy.parameters(),
+    optimizer = optim.Adam(agent.policy.parameters(),
         lr=agent_config['learning_rate'])
 
     setup_output_dir()
