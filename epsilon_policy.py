@@ -1,0 +1,30 @@
+from __future__ import absolute_import, division, print_function
+
+import abc
+from six import with_metaclass
+
+
+__all__ = ['EpsilonPolicy', 'LinearlyDecayingEpsilonPolicy']
+
+
+class EpsilonPolicy(with_metaclass(abc.ABCMeta, object)):
+    @abc.abstractmethod
+    def get_epsilon(self, triggered=False):
+        raise NotImplemented
+
+
+class LinearlyDecayingEpsilonPolicy(EpsilonPolicy):
+    def __init__(self, start_step, start_value, factor, lower_bound=0.0):
+        self.start_step = start_step
+        self.start_value = start_value
+        self.factor = factor
+        self.lower_bound = lower_bound
+        self._current_step = 0
+
+    def get_epsilon(self, triggered=False):
+        self._current_step += 1
+        if self._current_step > self.start_step:
+            value = self.start_value - self.factor * (self.start_step - self._current_step)
+        else:
+            value = self.start_value
+        return max(value, self.lower_bound)
