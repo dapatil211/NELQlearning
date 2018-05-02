@@ -168,7 +168,7 @@ def train(
         if triggered:
             trigger_file.write_line(str(training_steps))
             triggered_since_last_log = True
-        epsilon = epsilon_policy.get_epsilon(epsilon, triggered and not triggers_q)
+        epsilon = epsilon_policy.get_epsilon(epsilon, triggered)
         epsilon_file.write_line(str(epsilon))
 
         add_to_replay = len(agent.prev_states) >= 1
