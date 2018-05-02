@@ -1,11 +1,13 @@
 from agent import RLAgent
-from trigger_mechanism import NoTriggerMechanism
-from epsilon_policy import LinearlyDecayingEpsilonPolicy
+from trigger import NoTrigger, LTATrigger, MACTrigger
+from file_manager import FileManager
+from epsilon_policy import LinearlyDecayingEpsilonPolicy, ExponentiallyDecayingEpsilonPolicy
 from environment import Environment
 from config import config2, agent_config, train_config
 from plot import plot_reward
 import nel
 
+import argparse
 from collections import deque
 import random
 from six.moves import cPickle
@@ -123,18 +125,10 @@ def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
     save_fn(plot_path)
 
 
-def train(agent, env, actions, optimizer):
-    EPS_START = 1.
-    EPS_END = .1
-    EPS_DECAY_START = 1000.
-    EPS_DELTA = .00002
 
-    linear_decaying_epsilon_policy = LinearlyDecayingEpsilonPolicy(EPS_DECAY_START, EPS_START, EPS_DELTA, EPS_END)
-    trigger_mechanism = NoTriggerMechanism()
 
-    #def eps_func(i):
-    #    return get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END)
 
+def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, trigger_file, reward_file, loss_file, epsilon_file):
     num_steps_save_training_run = train_config['num_steps_save_training_run']
     policy_update_frequency = train_config['policy_update_frequency']
     target_update_frequency = train_config['target_update_frequency']
@@ -160,7 +154,10 @@ def train(agent, env, actions, optimizer):
         # with time.
 
         triggered = trigger_mechanism.should_trigger()
-        epsilon = linear_decaying_epsilon_policy.get_epsilon(triggered)
+        if triggered:
+            trigger_file.write_line(str(training_steps))
+        epsilon = epsilon_policy.get_epsilon(triggered)
+        epsilon_file.write_line(str(epsilon))
 
         add_to_replay = len(agent.prev_states) >= 1
 
@@ -176,6 +173,7 @@ def train(agent, env, actions, optimizer):
         # Accumulate all rewards.
         tr_reward += reward
         all_rewards.append(reward)
+        reward_file.write_line(str(reward))
         rewards.append(np.sum(all_rewards))
 
         # Add to memory current state, action it took, reward and new state.
@@ -190,6 +188,7 @@ def train(agent, env, actions, optimizer):
                 loss = compute_td_loss(
                     batch_size, agent, replay, discount_factor, optimizer)
                 losses.append(loss.data[0])
+                loss_file.write_line(str(loss.data[0]))
 
         if training_steps % 200 == 0 and training_steps > 0:
             print('step = ', training_steps)
@@ -237,7 +236,35 @@ def setup_output_dir():
     if not os.path.exists(p_dir):
         os.makedirs(p_dir)
 
-def main():
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--id', dest='id',
+                        type=int, default=0,
+                        help="Experiment ID")
+    parser.add_argument('--dir', dest='dir',
+                        type=str, default='./',
+                        help="Result Directory")
+    parser.add_argument('--trigger', dest='trigger',
+                        type=str, default='no',
+                        help="Trigger Mechanism")
+    parser.add_argument('--ep', dest='ep',
+                        type=str, default='linear',
+                        help="Epsilon Policy")
+
+
+def main(args):
+    args = parse_arguments()
+    id = args.id
+    dir = args.dir
+    trigger_fn = dir + 'trigger' + str(id)
+    reward_fn = dir + 'reward' + str(id)
+    loss_fn = dir + 'loss' + str(id)
+    epsilon_fn = dir + 'epsilon' + str(id)
+
+    trigger = args.trigger
+    ep = args.ep
+
     env = Environment(config2)
     from agent import actions
     state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
@@ -247,8 +274,34 @@ def main():
         lr=agent_config['learning_rate'])
 
     setup_output_dir()
-    train(agent, env, [0, 1, 2, 3], optimizer)
+
+
+    EPS_START = 1.
+    EPS_END = .1
+    EPS_DECAY_START = 1000.
+    EPS_DELTA = .00002
+    trigger_file = FileManager(trigger_fn)
+    reward_file = FileManager(reward_fn)
+    loss_file = FileManager(loss_fn)
+    epsilon_file = FileManager(epsilon_fn)
+
+
+    if ep == 'Linear':
+        epsilon_policy = LinearlyDecayingEpsilonPolicy(EPS_DECAY_START, EPS_START, EPS_DELTA, EPS_END)
+    else:
+        epsilon_policy = ExponentiallyDecayingEpsilonPolicy(EPS_DECAY_START, EPS_START, EPS_DELTA, EPS_END)
+
+    if trigger == 'no':
+        trigger_mechanism = NoTrigger()
+    elif trigger == 'mac':
+        trigger_mechanism = MACTrigger()
+    else:
+        trigger_mechanism = LTATrigger()
+
+
+    train(agent, env, [0, 1, 2, 3], optimizer, epsilon_policy, trigger_mechanism,
+          trigger_file, reward_file, loss_file, epsilon_file)
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
