@@ -267,7 +267,7 @@ def main():
     EPS_END = .1
     EPS_DECAY_START = 1000.
     EPS_DELTA = .00002
-    trigger_file = FileManager(trigger_fn)
+    trigger_file = FileManager(trigger_fn, buffer_size=1)
     reward_file = FileManager(reward_fn)
     loss_file = FileManager(loss_fn)
     epsilon_file = FileManager(epsilon_fn)
