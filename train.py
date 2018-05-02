@@ -192,9 +192,9 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
 
         if training_steps % log_num_steps == 0 and training_steps > 0:
             current_time = dt.datetime.now()
-            elapsed_time = (current_time - last_log_time).seconds
+            elapsed_time = (current_time - last_log_time).microseconds
             last_log_time = current_time
-            num_steps_per_second = float(log_num_steps) / elapsed_time
+            num_steps_per_second = float(log_num_steps) / (elapsed_time * 1e-6)
             print('%5.2f # steps / second, Loss: %10.8f' % (num_steps_per_second, loss.data.item()))
 
         if training_steps % target_update_frequency == 0:
