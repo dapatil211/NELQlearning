@@ -97,7 +97,10 @@ class RLAgent(BaseAgent):
         qs = self.policy(context)
         self.prev = qs.data
         # Pick the argmax.
-        ind = np.argmax(qs.data.numpy())
+        if self.use_gpu:
+            ind = np.argmax(qs.cpu().data.numpy())
+        else:
+            ind = np.argmax(qs.data.numpy())
         # Alternatively, you can sample proportional to qs.
         return actions[ind]
 
