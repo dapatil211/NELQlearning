@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from plot_NELperformance import calculate_mean_rew_per_time
 
 ##
-filenames = ['reward_1', 'loss_1', 'epsilon_1', 'trigger_1']
+i='5'
+filenames = ['reward_'+i, 'loss_'+i, 'epsilon_'+i, 'trigger_'+i]
 
 
 def plot_with_triggers(xvalues,yvalues,triggers):
