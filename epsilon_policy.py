@@ -9,7 +9,7 @@ __all__ = ['EpsilonPolicy', 'LinearlyDecayingEpsilonPolicy', 'ExponentiallyDecay
 
 class EpsilonPolicy(with_metaclass(abc.ABCMeta, object)):
     @abc.abstractmethod
-    def get_epsilon(self, triggered=False):
+    def get_epsilon(self, current_epsilon, triggered=False):
         raise NotImplemented
 
 
@@ -21,10 +21,10 @@ class LinearlyDecayingEpsilonPolicy(EpsilonPolicy):
         self.lower_bound = lower_bound
         self._current_step = 0
 
-    def get_epsilon(self, triggered=False):
+    def get_epsilon(self, current_epsilon, triggered=False):
         self._current_step += 1
         if self._current_step > self.start_step:
-            value = self.start_value - self.difference * (self.start_step - self._current_step)
+            value = current_epsilon - self.difference
         else:
             value = self.start_value
         return max(value, self.lower_bound)
@@ -38,10 +38,10 @@ class ExponentiallyDecayingEpsilonPolicy(EpsilonPolicy):
         self.lower_bound = lower_bound
         self._current_step = 0
 
-    def get_epsilon(self, triggered=False):
+    def get_epsilon(self, current_epsilon, triggered=False):
         self._current_step += 1
         if self._current_step > self.start_step:
-            value = self.start_value * (self.factor ** (self.start_step - self._current_step))
+            value = current_epsilon * self.factor
         else:
             value = self.start_value
         return max(value, self.lower_bound)
