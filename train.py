@@ -52,7 +52,7 @@ class ReplayBuffer(object):
         return len(self.buffer)
 
 
-def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer, use_gpu=False):
+def compute_td_loss(batch_size, agent, replay_buffer,  gamma, optimizer, use_gpu=False):
     # Sample a random minibatch from the replay history.
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
@@ -135,7 +135,9 @@ def plot(frame_idx, rewards, losses):
     plt.show()
 
 
-def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, trigger_file, reward_file, loss_file, epsilon_file, use_gpu):
+def train(
+        agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, trigger_file, reward_file, loss_file,
+        epsilon_file, use_gpu, triggers_q=False):
     log_num_steps = 1000
 
     num_steps_save_training_run = train_config['num_steps_save_training_run']
@@ -163,7 +165,7 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
 
         if training_steps > 0:
             triggered = trigger_mechanism.should_trigger(reward, loss.data.item())
-        if triggered:
+        if triggered and not triggers_q:
             trigger_file.write_line(str(training_steps))
             triggered_since_last_log = True
         epsilon = epsilon_policy.get_epsilon(epsilon, triggered)
@@ -213,7 +215,9 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
                     'Step: %7d, %6.2f # steps / second, Loss: %10.8f, Reward Rate: %6.4f' %
                     (training_steps, num_steps_per_second, loss.data.item(), tr_reward / training_steps))
 
-        if training_steps % target_update_frequency == 0:
+        if training_steps % target_update_frequency == 0 and not triggers_q:
+            agent.update_target()
+        if triggered and triggers_q:
             agent.update_target()
 
         model_path = 'outputs/models/NELQ_' + str(training_steps)
@@ -292,17 +296,19 @@ def main():
     else:
         epsilon_policy = ExponentiallyDecayingEpsilonPolicy(EPS_DECAY_START, EPS_START, EPS_DELTA, lower_bound=EPS_END)
 
+    triggers_q = False
     if trigger == 'no':
         trigger_mechanism = NoTrigger()
     elif trigger == 'mac':
         trigger_mechanism = MACTrigger()
-    elif trigger == 'lta':
+    elif trigger == 'lta' or trigger == 'ltaq':
         trigger_mechanism = LTATrigger()
+        triggers_q = trigger == 'ltaq'
     else:
         trigger_mechanism = LTAMACTrigger()
 
     train(agent, env, [0, 1, 2, 3], optimizer, epsilon_policy, trigger_mechanism,
-          trigger_file, reward_file, loss_file, epsilon_file, use_gpu)
+          trigger_file, reward_file, loss_file, epsilon_file, use_gpu, triggers_q)
 
 
 if __name__ == '__main__':
