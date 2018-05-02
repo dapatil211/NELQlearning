@@ -2,7 +2,7 @@ __all__ = ['FileManager']
 
 
 class FileManager(object):
-    def __init__(self, filename, buffer_size=4096, overwrite=True):
+    def __init__(self, filename, buffer_size=8192, overwrite=True):
         self.filename = filename
         self.buffer_size = buffer_size
         self.overwrite = overwrite
