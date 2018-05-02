@@ -149,6 +149,7 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
     epsilon = 1.0
 
     last_log_time = time.time()
+    triggered_since_last_log = False
 
     for training_steps in range(max_steps):
         # Update current exploration parameter epsilon, which is discounted
@@ -158,6 +159,7 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
             triggered = trigger_mechanism.should_trigger(reward, loss.data.item())
         if triggered:
             trigger_file.write_line(str(training_steps))
+            triggered_since_last_log = True
         epsilon = epsilon_policy.get_epsilon(epsilon, triggered)
         epsilon_file.write_line(str(epsilon))
 
@@ -195,7 +197,8 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
             elapsed_time = current_time - last_log_time
             last_log_time = current_time
             num_steps_per_second = float(log_num_steps) / elapsed_time
-            if triggered:
+            if triggered_since_last_log:
+                triggered_since_last_log = False
                 print(
                     'Step: %7d, %6.2f # steps / second, Loss: %10.8f, Reward Rate: %6.4f ****** Triggered' %
                     (training_steps, num_steps_per_second, loss.data.item(), tr_reward / training_steps))
