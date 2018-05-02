@@ -1,7 +1,7 @@
 import time
 
 from agent import RLAgent
-from trigger import NoTrigger, LTATrigger, MACTrigger
+from trigger import NoTrigger, MACTrigger, LTATrigger, LTAMACTrigger
 from file_manager import FileManager
 from epsilon_policy import LinearlyDecayingEpsilonPolicy, ExponentiallyDecayingEpsilonPolicy
 from environment import Environment
@@ -282,8 +282,10 @@ def main():
         trigger_mechanism = NoTrigger()
     elif trigger == 'mac':
         trigger_mechanism = MACTrigger()
-    else:
+    elif trigger == 'lta':
         trigger_mechanism = LTATrigger()
+    else:
+        trigger_mechanism = LTAMACTrigger()
 
     train(agent, env, [0, 1, 2, 3], optimizer, epsilon_policy, trigger_mechanism,
           trigger_file, reward_file, loss_file, epsilon_file, use_gpu)
