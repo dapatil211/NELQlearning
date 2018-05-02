@@ -21,7 +21,7 @@ class NoTrigger(Trigger):
 
 
 class MACTrigger(Trigger):
-    def __init__(self, slow_factor=0.00001, fast_factor=0.001):
+    def __init__(self, slow_factor=0.0001, fast_factor=0.01):
         self.slow_factor = slow_factor
         self.fast_factor = fast_factor
         self._slow_ma = None
@@ -45,6 +45,7 @@ class MACTrigger(Trigger):
     @staticmethod
     def _update_ma(ma, value, factor):
         return factor * value + (1 - factor) * ma
+
 
 class LTATrigger(Trigger):
     def __init__(self, min_steps_between_triggers=5000, window=1000):
@@ -73,4 +74,3 @@ class LTATrigger(Trigger):
                     return True
         self.steps_since_trigger += 1
         return False
-        
