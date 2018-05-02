@@ -1,4 +1,5 @@
 import time
+import yellowfin
 
 from agent import RLAgent
 from trigger import NoTrigger, MACTrigger, LTATrigger, LTAMACTrigger
@@ -265,7 +266,7 @@ def main():
     state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
     agent = RLAgent(env, state_size=state_size, use_gpu=use_gpu)
 
-    optimizer = optim.Adam(agent.policy.parameters(),
+    optimizer = yellowfin.YFOptimizer(agent.policy.parameters(),
         lr=agent_config['learning_rate'])
 
     setup_output_dir()
