@@ -117,52 +117,32 @@ def plot(frame_idx, rewards, losses):
     plt.show()
 
 
-def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
-    with open('outputs/train_stats.pkl', 'wb') as f:
-        cPickle.dump((losses, rewards), f)
-
-    agent.save(filepath=model_path)
-
-    save_fn(plot_path)
-
-
-
-
-
 def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, trigger_file, reward_file, loss_file, epsilon_file):
     num_steps_save_training_run = train_config['num_steps_save_training_run']
     policy_update_frequency = train_config['policy_update_frequency']
     target_update_frequency = train_config['target_update_frequency']
-    eval_frequency = train_config['eval_frequency']
     batch_size = train_config['batch_size']
     training_steps = 0
     replay = ReplayBuffer(train_config['replay_buffer_capacity'])
     discount_factor = train_config['discount_factor']
-    eval_reward = []
-    eval_steps = train_config['eval_steps']
     max_steps = train_config['max_steps']
     tr_reward = 0
     agent.update_target()
-    losses = []
-    all_rewards = deque(maxlen=100)
-    rewards = []
-    plt_fn, save_fn = plot_setup()
     triggered = False
 
-    painter = None
-    #painter_tr = nel.MapVisualizer(env.simulator, config2, (-30, -30), (150, 150))
-    prev_weights = agent.policy.fc3.weight
+    reward = 0
+    loss = Variable(torch.Tensor([0]))
+    epsilon = 1.0
+
     for training_steps in range(max_steps):
         # Update current exploration parameter epsilon, which is discounted
         # with time.
 
-        try:
-            triggered = trigger_mechanism.should_trigger(reward, loss)
-        except:
-            pass
+        if training_steps > 0:
+            triggered = trigger_mechanism.should_trigger(reward, loss.data[0])
         if triggered:
-                trigger_file.write_line(str(training_steps))
-        epsilon = epsilon_policy.get_epsilon(triggered)
+            trigger_file.write_line(str(training_steps))
+        epsilon = epsilon_policy.get_epsilon(epsilon, triggered)
         epsilon_file.write_line(str(epsilon))
 
         add_to_replay = len(agent.prev_states) >= 1
@@ -178,9 +158,7 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
 
         # Accumulate all rewards.
         tr_reward += reward
-        all_rewards.append(reward)
         reward_file.write_line(str(reward))
-        rewards.append(np.sum(all_rewards))
 
         # Add to memory current state, action it took, reward and new state.
         if add_to_replay:
@@ -193,55 +171,33 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
                 # Compute loss and update parameters.
                 loss = compute_td_loss(
                     batch_size, agent, replay, discount_factor, optimizer)
-                losses.append(loss.data[0])
                 loss_file.write_line(str(loss.data[0]))
 
-        if training_steps % 200 == 0 and training_steps > 0:
+        if training_steps % 1000 == 0 and training_steps > 0:
             print('step = ', training_steps)
             print("loss = ", loss.data[0])
             print("train reward = ", tr_reward)
             print('')
-            if training_steps < 100000:
-                plt_fn(training_steps, rewards, losses)
-            elif training_steps % 50000 == 0:
-                plt_fn(training_steps, rewards, losses)
-
 
         if training_steps % target_update_frequency == 0:
             agent.update_target()
 
         model_path = 'outputs/models/NELQ_' + str(training_steps)
-        p_path = 'outputs/plots/NELQ_plot_' + str(training_steps) + '.png'
 
         if training_steps % num_steps_save_training_run == 0:
-            save_training_run(losses, rewards, agent, save_fn, model_path, p_path)
+            agent.save(model_path)
 
-    position = agent.position()
-    painter = nel.MapVisualizer(env.simulator, config2, (
-        position[0] - 70, position[1] - 70), (position[0] + 70, position[1] + 70))
-    for _ in range(100):
-        s1 = agent.get_state()
-        action, reward = agent.step()
-        painter.draw()
-
-    with open('outputs/eval_reward.pkl', 'w') as f:
-        cPickle.dump(eval_reward, f)
-
-    save_training_run(losses, rewards, agent, save_fn, model_path, p_path)
-    print(eval_reward)
-
-
-# cumulative reward for training and test
+    model_path = 'outputs/models/NELQ_' + str(training_steps)
+    agent.save(model_path)
+    trigger_file.close()
+    reward_file.close()
+    loss_file.close()
+    epsilon_file.close()
 
 def setup_output_dir():
     m_dir = 'outputs/models'
-    p_dir = 'outputs/plots'
-
     if not os.path.exists(m_dir):
         os.makedirs(m_dir)
-    if not os.path.exists(p_dir):
-        os.makedirs(p_dir)
-
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -264,10 +220,10 @@ def main():
     args = parse_arguments()
     id = args.id
     dir = args.dir
-    trigger_fn = dir + 'trigger' + str(id)
-    reward_fn = dir + 'reward' + str(id)
-    loss_fn = dir + 'loss' + str(id)
-    epsilon_fn = dir + 'epsilon' + str(id)
+    trigger_fn = dir + 'trigger_' + str(id)
+    reward_fn = dir + 'reward_' + str(id)
+    loss_fn = dir + 'loss_' + str(id)
+    epsilon_fn = dir + 'epsilon_' + str(id)
 
     trigger = args.trigger
     ep = args.ep
@@ -293,10 +249,10 @@ def main():
     epsilon_file = FileManager(epsilon_fn)
 
 
-    if ep == 'Linear':
-        epsilon_policy = LinearlyDecayingEpsilonPolicy(EPS_DECAY_START, EPS_START, EPS_DELTA, EPS_END)
+    if ep == 'linear':
+        epsilon_policy = LinearlyDecayingEpsilonPolicy(EPS_DECAY_START, EPS_START, EPS_DELTA, lower_bound=EPS_END)
     else:
-        epsilon_policy = ExponentiallyDecayingEpsilonPolicy(EPS_DECAY_START, EPS_START, EPS_DELTA, EPS_END)
+        epsilon_policy = ExponentiallyDecayingEpsilonPolicy(EPS_DECAY_START, EPS_START, EPS_DELTA, lower_bound=EPS_END)
 
     if trigger == 'no':
         trigger_mechanism = NoTrigger()
