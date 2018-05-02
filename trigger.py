@@ -64,7 +64,7 @@ class LTATrigger(Trigger):
         self.steps += 1
         m_loss, _, _, _, _  = linregress(range(len(self.loss_window)), list(self.loss_window))
         
-        if current_reward_avg > self.reward_average and m_loss < 0:
+        if current_reward_avg < self.reward_average and m_loss < 0:
             if self.steps_since_trigger >= self.min_steps_between_triggers:
                 self.steps_since_trigger = 0
                 return True
