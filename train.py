@@ -195,9 +195,14 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
             elapsed_time = current_time - last_log_time
             last_log_time = current_time
             num_steps_per_second = float(log_num_steps) / elapsed_time
-            print(
-                'Step: %7d, %6.2f # steps / second, Loss: %10.8f, Reward Rate: %6.4f' %
-                (training_steps, num_steps_per_second, loss.data.item(), tr_reward / training_steps))
+            if triggered:
+                print(
+                    'Step: %7d, %6.2f # steps / second, Loss: %10.8f, Reward Rate: %6.4f ****** Triggered' %
+                    (training_steps, num_steps_per_second, loss.data.item(), tr_reward / training_steps))
+            else:
+                print(
+                    'Step: %7d, %6.2f # steps / second, Loss: %10.8f, Reward Rate: %6.4f' %
+                    (training_steps, num_steps_per_second, loss.data.item(), tr_reward / training_steps))
 
         if training_steps % target_update_frequency == 0:
             agent.update_target()
