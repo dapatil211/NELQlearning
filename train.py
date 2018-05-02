@@ -155,7 +155,7 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
         # with time.
 
         if training_steps > 0:
-            triggered = trigger_mechanism.should_trigger(reward, loss.data[0])
+            triggered = trigger_mechanism.should_trigger(reward, loss.data.item())
         if triggered:
             trigger_file.write_line(str(training_steps))
         epsilon = epsilon_policy.get_epsilon(epsilon, triggered)
@@ -194,8 +194,8 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
             current_time = dt.datetime.now()
             elapsed_time = (current_time - last_log_time).seconds
             last_log_time = current_time
-            num_steps_per_second = log_num_steps / float(elapsed_time)
-            print('Elapsed %5.2f seconds, Loss: %9.4f' % (num_steps_per_second, loss.data.item()))
+            num_steps_per_second = float(log_num_steps) / elapsed_time
+            print('%5.2f # steps / second, Loss: %10.8f' % (num_steps_per_second, loss.data.item()))
 
         if training_steps % target_update_frequency == 0:
             agent.update_target()
