@@ -188,14 +188,14 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
                 loss = compute_td_loss(
                     batch_size, agent, replay, discount_factor, optimizer,
                     use_gpu)
-                loss_file.write_line(str(loss.data[0]))
+                loss_file.write_line(str(loss.data.item()))
 
         if training_steps % log_num_steps == 0 and training_steps > 0:
             current_time = dt.datetime.now()
             elapsed_time = (current_time - last_log_time).seconds
             last_log_time = current_time
             num_steps_per_second = log_num_steps / elapsed_time
-            print('Elapsed %f5.2 seconds, Loss: %9.4f'.format(num_steps_per_second, int(loss.data[0].numpy())))
+            print('Elapsed %5.2f seconds, Loss: %9.4f' % (num_steps_per_second, int(loss.data.item())))
 
         if training_steps % target_update_frequency == 0:
             agent.update_target()
