@@ -194,7 +194,7 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
             current_time = time.time()
             elapsed_time = current_time - last_log_time
             last_log_time = current_time
-            num_steps_per_second = 1e-9 * float(log_num_steps) / elapsed_time
+            num_steps_per_second = float(log_num_steps) / elapsed_time
             print(
                 'Step: %7d, %6.2f # steps / second, Loss: %10.8f' %
                 (training_steps, num_steps_per_second, loss.data.item()))
