@@ -1,4 +1,4 @@
-import datetime as dt
+import time
 
 from agent import RLAgent
 from trigger import NoTrigger, LTATrigger, MACTrigger
@@ -148,7 +148,7 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
     loss = Variable(torch.Tensor([0]))
     epsilon = 1.0
 
-    last_log_time = dt.datetime.now()
+    last_log_time = time.time()
 
     for training_steps in range(max_steps):
         # Update current exploration parameter epsilon, which is discounted
@@ -191,10 +191,10 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
                 loss_file.write_line(str(loss.data.item()))
 
         if training_steps % log_num_steps == 0 and training_steps > 0:
-            current_time = dt.datetime.now()
-            elapsed_time = (current_time - last_log_time).microseconds
+            current_time = time.time()
+            elapsed_time = current_time - last_log_time
             last_log_time = current_time
-            num_steps_per_second = float(log_num_steps) / (elapsed_time * 1e-6)
+            num_steps_per_second = float(log_num_steps) / (elapsed_time * 1e-9)
             print(
                 'Step: %7d, %6.2f # steps / second, Loss: %10.8f' %
                 (training_steps, num_steps_per_second, loss.data.item()))
