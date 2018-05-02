@@ -215,9 +215,7 @@ def train(
                     'Step: %7d, %6.2f # steps / second, Loss: %10.8f, Reward Rate: %6.4f' %
                     (training_steps, num_steps_per_second, loss.data.item(), tr_reward / training_steps))
 
-        if training_steps % target_update_frequency == 0 and not triggers_q:
-            agent.update_target()
-        if triggered and triggers_q:
+        if training_steps % target_update_frequency == 0 or (triggered and triggers_q):
             agent.update_target()
 
         model_path = 'outputs/models/NELQ_' + str(training_steps)
