@@ -65,8 +65,8 @@ class LTATrigger(Trigger):
 
         if current_reward_avg < self.reward_average:
             losses = np.array(self.loss_window)
-            loss_avg_1 = np.mean(losses[:len(losses)/2])
-            loss_avg_2 = np.mean(losses[len(losses)/2:])
+            loss_avg_1 = np.mean(losses[:len(losses)//2])
+            loss_avg_2 = np.mean(losses[len(losses)//2:])
             if loss_avg_1 < loss_avg_2:
                 if self.steps_since_trigger >= self.min_steps_between_triggers:
                     self.steps_since_trigger = 0
