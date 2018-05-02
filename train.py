@@ -1,4 +1,6 @@
 from agent import RLAgent
+from trigger_mechanism import NoTriggerMechanism
+from epsilon_policy import LinearlyDecayingEpsilonPolicy
 from environment import Environment
 from config import config2, agent_config, train_config
 from plot import plot_reward
@@ -112,17 +114,6 @@ def plot(frame_idx, rewards, losses):
     plt.show()
 
 
-def get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END):
-    if i < EPS_DECAY_START:
-        epsilon = EPS_START
-    elif i > EPS_DECAY_END:
-        epsilon = EPS_END
-    else:
-        epsilon = EPS_START - (EPS_START - EPS_END) * (i -
-                                                       EPS_DECAY_START) / (EPS_DECAY_END - EPS_DECAY_START)
-    return epsilon
-
-
 def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
     with open('outputs/train_stats.pkl', 'wb') as f:
         cPickle.dump((losses, rewards), f)
@@ -136,10 +127,14 @@ def train(agent, env, actions, optimizer):
     EPS_START = 1.
     EPS_END = .1
     EPS_DECAY_START = 1000.
-    EPS_DECAY_END = 50000.
+    EPS_DELTA = .00002
 
-    def eps_func(i):
-        return get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END)
+    linear_decaying_epsilon_policy = LinearlyDecayingEpsilonPolicy(EPS_DECAY_START, EPS_START, EPS_DELTA, EPS_END)
+    trigger_mechanism = NoTriggerMechanism()
+
+    #def eps_func(i):
+    #    return get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END)
+
     num_steps_save_training_run = train_config['num_steps_save_training_run']
     policy_update_frequency = train_config['policy_update_frequency']
     target_update_frequency = train_config['target_update_frequency']
@@ -163,7 +158,9 @@ def train(agent, env, actions, optimizer):
     for training_steps in range(max_steps):
         # Update current exploration parameter epsilon, which is discounted
         # with time.
-        epsilon = eps_func(training_steps)
+
+        triggered = trigger_mechanism.should_trigger()
+        epsilon = linear_decaying_epsilon_policy.get_epsilon(triggered)
 
         add_to_replay = len(agent.prev_states) >= 1
 
