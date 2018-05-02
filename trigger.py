@@ -21,25 +21,26 @@ class NoTrigger(Trigger):
 
 
 class MACTrigger(Trigger):
-    def __init__(self, slow_factor=0.0001, fast_factor=0.01):
+    def __init__(self, slow_factor=0.0001, fast_factor=0.01, keep_triggering=False):
         self.slow_factor = slow_factor
         self.fast_factor = fast_factor
+        self.keep_triggering = keep_triggering
         self._slow_ma = None
         self._fast_ma = None
-        self._prev_slow = False
+        self._prev_slow = True
 
     def should_trigger(self, reward, loss):
         if self._slow_ma is None:
             self._slow_ma = reward
             self._fast_ma = reward
-            self._prev_slow = False
+            self._prev_slow = True
         self._slow_ma = self._update_ma(self._slow_ma, reward, self.slow_factor)
         self._fast_ma = self._update_ma(self._fast_ma, reward, self.fast_factor)
+        if self._slow_ma > self._fast_ma and (not self._prev_slow or self.keep_triggering):
+            self._prev_slow = True
+            return True
         if self._prev_slow and self._slow_ma < self._fast_ma:
             self._prev_slow = False
-            return True
-        if not self._prev_slow and self._slow_ma > self._fast_ma:
-            self._prev_slow = True
         return False
 
     @staticmethod
