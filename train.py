@@ -1,3 +1,5 @@
+import datetime as dt
+
 from agent import RLAgent
 from trigger import NoTrigger, LTATrigger, MACTrigger
 from file_manager import FileManager
@@ -128,6 +130,8 @@ def plot(frame_idx, rewards, losses):
 
 
 def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, trigger_file, reward_file, loss_file, epsilon_file, use_gpu):
+    log_num_steps = 1000
+
     num_steps_save_training_run = train_config['num_steps_save_training_run']
     policy_update_frequency = train_config['policy_update_frequency']
     target_update_frequency = train_config['target_update_frequency']
@@ -143,6 +147,8 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
     reward = 0
     loss = Variable(torch.Tensor([0]))
     epsilon = 1.0
+
+    last_log_time = dt.datetime.now()
 
     for training_steps in range(max_steps):
         # Update current exploration parameter epsilon, which is discounted
@@ -184,11 +190,12 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
                     use_gpu)
                 loss_file.write_line(str(loss.data[0]))
 
-        if training_steps % 1000 == 0 and training_steps > 0:
-            print('step = ', training_steps)
-            print("loss = ", loss.data[0])
-            print("train reward = ", tr_reward)
-            print('')
+        if training_steps % log_num_steps == 0 and training_steps > 0:
+            current_time = dt.datetime.now()
+            elapsed_time = (current_time - last_log_time).seconds
+            last_log_time = current_time
+            num_steps_per_second = log_num_steps / elapsed_time
+            print('Elapsed %f5.2 seconds, Loss: %9.4f', num_steps_per_second, loss.data[0])
 
         if training_steps % target_update_frequency == 0:
             agent.update_target()
