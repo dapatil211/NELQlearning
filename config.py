@@ -44,7 +44,7 @@ interaction_fn_args.extend([10.0, 100.0, 0.0, -6.0])     # parameters for intera
 
 
 config2 = nel.SimulatorConfig(
-    max_steps_per_movement=1, vision_range=10,
+    max_steps_per_movement=1, vision_range=5,
     patch_size=32, gibbs_num_iter=10, items=items,
     agent_color=[1.0, 0.5, 0.5],
     collision_policy=nel.MovementConflictPolicy.FIRST_COME_FIRST_SERVED,
