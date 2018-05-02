@@ -47,10 +47,15 @@ class BaseAgent(nel.Agent):
         pass
 
 class RLAgent(BaseAgent):
-    def __init__(self, env, state_size, history_len=1, load_filepath=None):
+    def __init__(self, env, state_size, history_len=1, load_filepath=None, use_gpu=False):
         super(RLAgent, self).__init__(env, load_filepath)
-        self.policy = Policy(state_size=state_size)
-        self.target = Policy(state_size=state_size)
+        self.use_gpu = use_gpu
+        if self.use_gpu:
+            self.policy = Policy(state_size=state_size).cuda()
+            self.target = Policy(state_size=state_size).cuda()
+        else:
+            self.policy = Policy(state_size=state_size)
+            self.target = Policy(state_size=state_size)
         self.target.load_state_dict(self.policy.state_dict())
         self.prev = torch.Tensor([0, 0, 0, 0])
         self.prev_action = np.zeros(len(actions), dtype=np.float32)
@@ -84,7 +89,10 @@ class RLAgent(BaseAgent):
 
         # If we don't explore, then we chose the action with max Q value.
         state = self.get_state()
-        context = Variable(torch.from_numpy(state), requires_grad=False)
+        if self.use_gpu:
+            context = Variable(torch.from_numpy(state).cuda(), requires_grad=False)
+        else:
+            context = Variable(torch.from_numpy(state), requires_grad=False)
         self.prev_states.append(self.create_current_frame())
         qs = self.policy(context)
         self.prev = qs.data
@@ -123,11 +131,17 @@ class RLAgent(BaseAgent):
     def _load(self, filepath):
         target_path = filepath+'.target'
         with open(target_path, 'rb') as f:
-            self.target = torch.load(f)
+            if self.use_gpu:
+                self.target = torch.load(f).cuda()
+            else:
+                self.target = torch.load(f)
 
         model_path = filepath+'.model'
         with open(model_path, 'rb') as f:
-            self.policy = torch.load(f)
+            if self.use_gpu:
+                self.policy = torch.load(f).cuda()
+            else:
+                self.policy = torch.load(f)
 
 
 

@@ -43,15 +43,22 @@ class ReplayBuffer(object):
         return len(self.buffer)
 
 
-def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
+def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer, use_gpu=False):
     # Sample a random minibatch from the replay history.
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
-    state = Variable(torch.FloatTensor(np.float32(state)))
-    next_state = Variable(torch.FloatTensor(np.float32(next_state)))
-    action = Variable(torch.LongTensor(action))
-    reward = Variable(torch.FloatTensor(reward))
-    done = Variable(torch.FloatTensor(done))
+    if use_gpu:
+        state = Variable(torch.FloatTensor(np.float32(state)).cuda())
+        next_state = Variable(torch.FloatTensor(np.float32(next_state)).cuda())
+        action = Variable(torch.LongTensor(action).cuda())
+        reward = Variable(torch.FloatTensor(reward).cuda())
+        done = Variable(torch.FloatTensor(done).cuda())
+    else:
+        state = Variable(torch.FloatTensor(np.float32(state)))
+        next_state = Variable(torch.FloatTensor(np.float32(next_state)))
+        action = Variable(torch.LongTensor(action))
+        reward = Variable(torch.FloatTensor(reward))
+        done = Variable(torch.FloatTensor(done))
 
     q_values = agent.policy(state)
     q_values_target = agent.target(next_state)
@@ -60,13 +67,16 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     expected_q_value = reward + gamma * next_q_value * (1 - done)
 
     # loss = F.smooth_l1_loss(q_value,  Variable(expected_q_value.data))
-    loss = F.mse_loss(q_value,  Variable(expected_q_value.data))
+    if use_gpu:
+        loss = F.mse_loss(q_value,  Variable(expected_q_value.data.cuda()))
+    else:
+        loss = F.mse_loss(q_value,  Variable(expected_q_value.data))
 
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
 
-    return loss
+    return loss.cpu()
 
 
 def plot_setup():
@@ -128,7 +138,9 @@ def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
 
 
 
-def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, trigger_file, reward_file, loss_file, epsilon_file):
+def train(
+        agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, trigger_file, reward_file, loss_file,
+        epsilon_file, use_gpu):
     num_steps_save_training_run = train_config['num_steps_save_training_run']
     policy_update_frequency = train_config['policy_update_frequency']
     target_update_frequency = train_config['target_update_frequency']
@@ -186,7 +198,8 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
             if batch_size < len(replay):
                 # Compute loss and update parameters.
                 loss = compute_td_loss(
-                    batch_size, agent, replay, discount_factor, optimizer)
+                    batch_size, agent, replay, discount_factor, optimizer,
+                    use_gpu)
                 losses.append(loss.data[0])
                 loss_file.write_line(str(loss.data[0]))
 
@@ -251,6 +264,9 @@ def parse_arguments():
     parser.add_argument('--ep', dest='ep',
                         type=str, default='linear',
                         help="Epsilon Policy")
+    parser.add_argument('--use-gpu', dest='use_gpu',
+                        type=bool, default=False,
+                        help="Indicates whether or not to use a GPU.")
 
 
 def main(args):
@@ -261,6 +277,7 @@ def main(args):
     reward_fn = dir + 'reward' + str(id)
     loss_fn = dir + 'loss' + str(id)
     epsilon_fn = dir + 'epsilon' + str(id)
+    use_gpu = args.use_gpu
 
     trigger = args.trigger
     ep = args.ep
@@ -268,7 +285,7 @@ def main(args):
     env = Environment(config2)
     from agent import actions
     state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
-    agent = RLAgent(env, state_size=state_size)
+    agent = RLAgent(env, state_size=state_size, use_gpu=use_gpu)
 
     optimizer = optim.Adam(agent.policy.parameters(),
         lr=agent_config['learning_rate'])
@@ -300,7 +317,7 @@ def main(args):
 
 
     train(agent, env, [0, 1, 2, 3], optimizer, epsilon_policy, trigger_mechanism,
-          trigger_file, reward_file, loss_file, epsilon_file)
+          trigger_file, reward_file, loss_file, epsilon_file, use_gpu)
 
 
 if __name__ == '__main__':
