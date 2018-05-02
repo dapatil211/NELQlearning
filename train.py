@@ -302,8 +302,9 @@ def main():
     elif trigger == 'lta' or trigger == 'ltaq':
         trigger_mechanism = LTATrigger()
         triggers_q = trigger == 'ltaq'
-    else:
+    elif trigger == 'maclta' or trigger == 'macltaq':
         trigger_mechanism = LTAMACTrigger()
+        triggers_q = trigger == 'macltaq'
 
     train(agent, env, [0, 1, 2, 3], optimizer, epsilon_policy, trigger_mechanism,
           trigger_file, reward_file, loss_file, epsilon_file, use_gpu, triggers_q)
