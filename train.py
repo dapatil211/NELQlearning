@@ -195,7 +195,7 @@ def train(agent, env, actions, optimizer, epsilon_policy, trigger_mechanism, tri
             elapsed_time = (current_time - last_log_time).seconds
             last_log_time = current_time
             num_steps_per_second = log_num_steps / elapsed_time
-            print('Elapsed %f5.2 seconds, Loss: %9.4f', num_steps_per_second, loss.data[0])
+            print('Elapsed %f5.2 seconds, Loss: %9.4f'.format(num_steps_per_second, int(loss.data[0].numpy())))
 
         if training_steps % target_update_frequency == 0:
             agent.update_target()
