@@ -6,6 +6,7 @@ from environment import Environment
 from config import config2, agent_config, train_config
 from plot import plot_reward
 import nel
+import sys
 
 import argparse
 from collections import deque
@@ -158,6 +159,8 @@ def train(
     all_rewards = deque(maxlen=100)
     rewards = []
     plt_fn, save_fn = plot_setup()
+    triggered = False
+
     painter = None
     #painter_tr = nel.MapVisualizer(env.simulator, config2, (-30, -30), (150, 150))
     prev_weights = agent.policy.fc3.weight
@@ -165,9 +168,12 @@ def train(
         # Update current exploration parameter epsilon, which is discounted
         # with time.
 
-        triggered = trigger_mechanism.should_trigger()
+        try:
+            triggered = trigger_mechanism.should_trigger(reward, loss)
+        except:
+            pass
         if triggered:
-            trigger_file.write_line(str(training_steps))
+                trigger_file.write_line(str(training_steps))
         epsilon = epsilon_policy.get_epsilon(triggered)
         epsilon_file.write_line(str(epsilon))
 
@@ -267,9 +273,10 @@ def parse_arguments():
     parser.add_argument('--use-gpu', dest='use_gpu',
                         type=bool, default=False,
                         help="Indicates whether or not to use a GPU.")
+    return parser.parse_args()
 
 
-def main(args):
+def main():
     args = parse_arguments()
     id = args.id
     dir = args.dir
@@ -315,10 +322,9 @@ def main(args):
     else:
         trigger_mechanism = LTATrigger()
 
-
     train(agent, env, [0, 1, 2, 3], optimizer, epsilon_policy, trigger_mechanism,
           trigger_file, reward_file, loss_file, epsilon_file, use_gpu)
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()
